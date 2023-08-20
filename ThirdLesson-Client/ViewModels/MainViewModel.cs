@@ -79,7 +79,7 @@ namespace ThirdLesson_Client.ViewModels
         public RelayCommand ConnectClickCommand { get; set; }
         public MainViewModel()
         {
-            ConnectClickCommand = new RelayCommand((obj) =>
+            ConnectClickCommand = new RelayCommand(async (obj) =>
             {
                 var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
 
@@ -89,30 +89,32 @@ namespace ThirdLesson_Client.ViewModels
                 EndPoint ep = new IPEndPoint(ip, port);
                 while (true)
                 {
-
-                    var img = TakeScreen();
-                    try
+                    await Task.Run(() =>
                     {
-                        var bytes = ImageToByteArray(img);
-
-                        int maxPacketSize = 65507;
-
-                        for (int offset = 0; offset < bytes.Length; offset += maxPacketSize)
+                        var img = TakeScreen();
+                        try
                         {
-                            int remainingBytes = Math.Min(maxPacketSize, bytes.Length - offset);
-                            var packet = new byte[remainingBytes];
-                            Array.Copy(bytes, offset, packet, 0, remainingBytes);
+                            var bytes = ImageToByteArray(img);
 
-                            socket.SendTo(packet, ep);
+                            int maxPacketSize = 65507;
 
-                            Task.Delay(10);
+                            for (int offset = 0; offset < bytes.Length; offset += maxPacketSize)
+                            {
+                                int remainingBytes = Math.Min(maxPacketSize, bytes.Length - offset);
+                                var packet = new byte[remainingBytes];
+                                Array.Copy(bytes, offset, packet, 0, remainingBytes);
+
+                                socket.SendTo(packet, ep);
+
+                                Task.Delay(10);
+                            }
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine(ex.Message);
-                    }
-                    Task.Delay(200);
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex.Message);
+                        }
+                        Task.Delay(200);
+                    });
                 }
 
             });
