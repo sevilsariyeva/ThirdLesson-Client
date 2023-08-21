@@ -20,6 +20,9 @@ using System.Windows.Forms;
 using System.Net.Sockets;
 using System.Net;
 using System.Threading;
+using Encoder = System.Drawing.Imaging.Encoder;
+using System.IO.Compression;
+using ImageMagick;
 
 namespace ThirdLesson_Client.ViewModels
 {
@@ -32,6 +35,16 @@ namespace ThirdLesson_Client.ViewModels
             get { return currentImage; }
             set { currentImage = value; OnPropertyChanged(); }
         }
+        //public byte[] ImageToByteArray(BitmapSource image)
+        //{
+        //    using (var ms = new MemoryStream())
+        //    {
+        //        var encoder = new PngBitmapEncoder(); 
+        //        encoder.Frames.Add(BitmapFrame.Create(image));
+        //        encoder.Save(ms);
+        //        return ms.ToArray();
+        //    }
+        //}
         static byte[] ImageToByteArray(Bitmap image)
         {
             using (MemoryStream memoryStream = new MemoryStream())
@@ -76,6 +89,83 @@ namespace ThirdLesson_Client.ViewModels
             screenshot.Save(fullPath, ImageFormat.Png);
             return screenshot;
         }
+        //public BitmapImage CompressImage(Bitmap sourceBitmap, long targetFileSizeInBytes)
+        //{
+        //    // Create a parameterized encoder for quality setting
+        //    EncoderParameters encoderParameters = new EncoderParameters(1);
+        //    EncoderParameter encoderParameter = new EncoderParameter(Encoder.Quality, 50L); // Adjust quality as needed
+        //    encoderParameters.Param[0] = encoderParameter;
+
+        //    ImageCodecInfo jpegCodecInfo = GetEncoderInfo(ImageFormat.Jpeg);
+
+        //    MemoryStream compressedStream = new MemoryStream();
+        //    sourceBitmap.Save(compressedStream, jpegCodecInfo, encoderParameters);
+
+        //    BitmapImage bitmapImage = new BitmapImage();
+        //    bitmapImage.BeginInit();
+        //    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+        //    bitmapImage.StreamSource = new MemoryStream(compressedStream.ToArray());
+        //    bitmapImage.EndInit();
+        //    bitmapImage.Freeze(); // Freeze the image to make it accessible from other threads
+
+        //    return bitmapImage;
+        //}
+
+        private ImageCodecInfo GetEncoderInfo(ImageFormat format)
+        {
+            foreach (ImageCodecInfo codec in ImageCodecInfo.GetImageDecoders())
+            {
+                if (codec.FormatID == format.Guid)
+                {
+                    return codec;
+                }
+            }
+            return null;
+        }
+        private byte[] CompressImage(byte[] imageBytes, int targetSize)
+        {
+            using (MemoryStream memoryStream = new MemoryStream(imageBytes))
+            {
+                using (var image = new MagickImage(memoryStream))
+                {
+                    image.Quality = 50; // Adjust the quality level as needed
+
+                    while (image.ToByteArray().Length > targetSize)
+                    {
+                        image.Quality -= 5; // Reduce quality iteratively
+
+                        if (image.Quality <= 0)
+                        {
+                            break;
+                        }
+                    }
+
+                    return image.ToByteArray();
+                }
+            }
+        }
+        private Bitmap ByteArrayToImage(byte[] byteArray)
+        {
+            using (MemoryStream memoryStream = new MemoryStream(byteArray))
+            {
+                return new Bitmap(memoryStream);
+            }
+        }
+
+        // Resize image
+        private Bitmap ResizeImage(Bitmap image, double scaleFactor)
+        {
+            int newWidth = (int)(image.Width * scaleFactor);
+            int newHeight = (int)(image.Height * scaleFactor);
+
+            Bitmap resizedImage = new Bitmap(newWidth, newHeight);
+            using (Graphics graphics = Graphics.FromImage(resizedImage))
+            {
+                graphics.DrawImage(image, new Rectangle(0, 0, newWidth, newHeight));
+            }
+
+            return resizedImage;
+        }
         public RelayCommand ConnectClickCommand { get; set; }
         public MainViewModel()
         {
@@ -95,25 +185,16 @@ namespace ThirdLesson_Client.ViewModels
                         try
                         {
                             var bytes = ImageToByteArray(img);
+                            var compressed = CompressImage(bytes,50000);
 
-                            int maxPacketSize = 65507;
-
-                            for (int offset = 0; offset < bytes.Length; offset += maxPacketSize)
-                            {
-                                int remainingBytes = Math.Min(maxPacketSize, bytes.Length - offset);
-                                var packet = new byte[remainingBytes];
-                                Array.Copy(bytes, offset, packet, 0, remainingBytes);
-
-                                socket.SendTo(packet, ep);
-
-                                Task.Delay(10);
-                            }
+                            socket.SendTo(compressed, ep);
+                          
                         }
                         catch (Exception ex)
                         {
                             Console.WriteLine(ex.Message);
                         }
-                        Task.Delay(200);
+                        Task.Delay(20);
                     });
                 }
 
