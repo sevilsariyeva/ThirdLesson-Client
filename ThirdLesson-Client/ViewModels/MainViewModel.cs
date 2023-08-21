@@ -35,16 +35,6 @@ namespace ThirdLesson_Client.ViewModels
             get { return currentImage; }
             set { currentImage = value; OnPropertyChanged(); }
         }
-        //public byte[] ImageToByteArray(BitmapSource image)
-        //{
-        //    using (var ms = new MemoryStream())
-        //    {
-        //        var encoder = new PngBitmapEncoder(); 
-        //        encoder.Frames.Add(BitmapFrame.Create(image));
-        //        encoder.Save(ms);
-        //        return ms.ToArray();
-        //    }
-        //}
         static byte[] ImageToByteArray(Bitmap image)
         {
             using (MemoryStream memoryStream = new MemoryStream())
@@ -89,27 +79,6 @@ namespace ThirdLesson_Client.ViewModels
             screenshot.Save(fullPath, ImageFormat.Png);
             return screenshot;
         }
-        //public BitmapImage CompressImage(Bitmap sourceBitmap, long targetFileSizeInBytes)
-        //{
-        //    // Create a parameterized encoder for quality setting
-        //    EncoderParameters encoderParameters = new EncoderParameters(1);
-        //    EncoderParameter encoderParameter = new EncoderParameter(Encoder.Quality, 50L); // Adjust quality as needed
-        //    encoderParameters.Param[0] = encoderParameter;
-
-        //    ImageCodecInfo jpegCodecInfo = GetEncoderInfo(ImageFormat.Jpeg);
-
-        //    MemoryStream compressedStream = new MemoryStream();
-        //    sourceBitmap.Save(compressedStream, jpegCodecInfo, encoderParameters);
-
-        //    BitmapImage bitmapImage = new BitmapImage();
-        //    bitmapImage.BeginInit();
-        //    bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-        //    bitmapImage.StreamSource = new MemoryStream(compressedStream.ToArray());
-        //    bitmapImage.EndInit();
-        //    bitmapImage.Freeze(); // Freeze the image to make it accessible from other threads
-
-        //    return bitmapImage;
-        //}
 
         private ImageCodecInfo GetEncoderInfo(ImageFormat format)
         {
@@ -128,18 +97,17 @@ namespace ThirdLesson_Client.ViewModels
             {
                 using (var image = new MagickImage(memoryStream))
                 {
-                    image.Quality = 50; // Adjust the quality level as needed
+                    image.Quality = 50; 
 
                     while (image.ToByteArray().Length > targetSize)
                     {
-                        image.Quality -= 5; // Reduce quality iteratively
+                        image.Quality -= 5; 
 
                         if (image.Quality <= 0)
                         {
                             break;
                         }
                     }
-
                     return image.ToByteArray();
                 }
             }
@@ -152,20 +120,6 @@ namespace ThirdLesson_Client.ViewModels
             }
         }
 
-        // Resize image
-        private Bitmap ResizeImage(Bitmap image, double scaleFactor)
-        {
-            int newWidth = (int)(image.Width * scaleFactor);
-            int newHeight = (int)(image.Height * scaleFactor);
-
-            Bitmap resizedImage = new Bitmap(newWidth, newHeight);
-            using (Graphics graphics = Graphics.FromImage(resizedImage))
-            {
-                graphics.DrawImage(image, new Rectangle(0, 0, newWidth, newHeight));
-            }
-
-            return resizedImage;
-        }
         public RelayCommand ConnectClickCommand { get; set; }
         public MainViewModel()
         {
@@ -197,7 +151,6 @@ namespace ThirdLesson_Client.ViewModels
                         Task.Delay(20);
                     });
                 }
-
             });
 
         }
